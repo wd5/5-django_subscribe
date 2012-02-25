@@ -9,7 +9,7 @@ from django.conf import settings
 from django import forms
 from django.template import Context, loader
 
-from subscribe.models import Subscription
+from models import Subscription
 
 class EmailForm(forms.Form):
     email = forms.EmailField(label=u'Email')
