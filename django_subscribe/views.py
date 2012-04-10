@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import logging
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
@@ -40,7 +40,7 @@ def add(request):
 
             subject, content = process_template('subscribe/invitation.html',
                                                 {'subscription': s})
-            send_mail(subject, content, settings.DEFAULT_FROM_EMAIL, [s.email], fail_silently=False)
+            send_mail(subject, content, settings.DEFAULT_FROM_EMAIL, [s.email])
 
             return render_to_response(request, 'subscribe/message.html', {'message': u'Вы успешно подписаны, проверьте свою почту.'})
 
@@ -94,13 +94,21 @@ def post(request):
 
     form = PostForm(request.POST)
     if request.POST and form.is_valid():
+        log = logging.getLogger('django.email')
         subject, content = form.cleaned_data['message'].split("\n", 1)
         subject = subject.strip()
-        content += u"\n\nЧтобы отписаться от рассылки, перейдите по ссылке\n\nhttp://perspektiva-ekb.ru/subscribe/cancel?email=%s&code=%s"
+        content += u"\n\nЧтобы отписаться от рассылки, перейдите по ссылке\n\nhttp://%s/subscribe/cancel?email=%s&code=%s"
         count = 0
+        fails = 0
         for s in Subscription.valid_emails():
-            send_mail(subject, content % (s.email, s.delete_code), settings.DEFAULT_FROM_EMAIL, [s.email], fail_silently=False)
-            count += 1
+            try:
+                send_mail(subject, content % (settings.DOMAIN, s.email, s.delete_code), settings.DEFAULT_FROM_EMAIL, [s.email])
+                count += 1
+            except Exception, e:
+                log.error("Cannot send mail: %s", e)
+                fails += 1
+
+        log.info("%s emails sended, %s failed", count, fails)
         return HttpResponseRedirect(reverse('post') + '?sent=%s' % count)
     else:
         return render_to_response(request, 'subscribe/post.html', {'form': form})
