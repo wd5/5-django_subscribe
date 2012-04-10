@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import models
 from django.forms import ValidationError
 
+
 class Subscription(models.Model):
     email = models.EmailField(verbose_name=u"Email")
     confirmation_code = models.CharField(verbose_name=u"Код подтверждения", max_length=32, null=True, blank=True, default=None)

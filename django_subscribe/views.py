@@ -11,12 +11,14 @@ from django.template import Context, loader
 
 from models import Subscription
 
+
 class EmailForm(forms.Form):
     email = forms.EmailField(label=u'Email')
 
+
 class PostForm(forms.Form):
     message = forms.CharField(label=u'', error_messages={'required': u'Введите текст письма'},
-                        widget=forms.Textarea(attrs={'rows':30, 'cols':80}))
+                        widget=forms.Textarea(attrs={'rows': 30, 'cols': 80}))
     send = forms.BooleanField(label=u'Отправить', error_messages={'required': u'Подтвердите, что письмо готово к отправке'})
 
 
@@ -30,19 +32,19 @@ def add(request):
     form = EmailForm(request.POST)
     if form.is_valid():
         if Subscription.objects.filter(email=form.cleaned_data['email']).count() > 0:
-            return render_to_response(request, 'subscribe/message.html', {'message':u'Вы уже подписаны на нашу рассылку.'})
-        
+            return render_to_response(request, 'subscribe/message.html', {'message': u'Вы уже подписаны на нашу рассылку.'})
+
         else:
             s = Subscription(email=form.cleaned_data['email'])
             s.fill_codes()
-            
-            subject, content = process_template('subscribe/invitation.html', 
+
+            subject, content = process_template('subscribe/invitation.html',
                                                 {'subscription': s})
             send_mail(subject, content, settings.DEFAULT_FROM_EMAIL, [s.email], fail_silently=False)
-            
-            return render_to_response(request, 'subscribe/message.html', {'message':u'Вы успешно подписаны, проверьте свою почту.'})
-    
-    return render_to_response(request, 'subscribe/add.html', {'form':form})
+
+            return render_to_response(request, 'subscribe/message.html', {'message': u'Вы успешно подписаны, проверьте свою почту.'})
+
+    return render_to_response(request, 'subscribe/add.html', {'form': form})
 
 
 def process_template(template, context):
@@ -57,16 +59,16 @@ def confirm(request):
     try:
         s = Subscription.objects.get(email=request.GET.get('email', ''))
         if not s.confirmation_code:
-            return render_to_response(request, 'subscribe/message.html', {'message':u'Вы уже подтвердили ваш email. Все новости нашего сайта будут приходить на вашу почту.'})
+            return render_to_response(request, 'subscribe/message.html', {'message': u'Вы уже подтвердили ваш email. Все новости нашего сайта будут приходить на вашу почту.'})
 
         try:
             s.confirm(request.GET.get('code', ''))
-            return render_to_response(request, 'subscribe/message.html', {'message':u'Вы подписаны на новости сайта. Спасибо за интерес к нам.'})
+            return render_to_response(request, 'subscribe/message.html', {'message': u'Вы подписаны на новости сайта. Спасибо за интерес к нам.'})
         except forms.ValidationError:
-            return render_to_response(request, 'subscribe/message.html', {'message':u'Код подтверждения неправильный. Перейдите по ссылке, указанной в письме.'})
-    
+            return render_to_response(request, 'subscribe/message.html', {'message': u'Код подтверждения неправильный. Перейдите по ссылке, указанной в письме.'})
+
     except Subscription.DoesNotExist:
-        return render_to_response(request, 'subscribe/message.html', {'message':u'Указанный email не найден в нашей базе.'})
+        return render_to_response(request, 'subscribe/message.html', {'message': u'Указанный email не найден в нашей базе.'})
 
 
 def cancel(request):
@@ -75,12 +77,12 @@ def cancel(request):
 
         try:
             s.cancel(request.GET.get('code', ''))
-            return render_to_response(request, 'subscribe/message.html', {'message':u'Вы успешно удалили свой email из нашего списка рассылки.'})
+            return render_to_response(request, 'subscribe/message.html', {'message': u'Вы успешно удалили свой email из нашего списка рассылки.'})
         except forms.ValidationError:
-            return render_to_response(request, 'subscribe/message.html', {'message':u'Код подтверждения неправильный. Перейдите по ссылке, указанной в письме.'})
-    
+            return render_to_response(request, 'subscribe/message.html', {'message': u'Код подтверждения неправильный. Перейдите по ссылке, указанной в письме.'})
+
     except Subscription.DoesNotExist:
-        return render_to_response(request, 'subscribe/message.html', {'message':u'Указанный email не найден в нашей базе.'})
+        return render_to_response(request, 'subscribe/message.html', {'message': u'Указанный email не найден в нашей базе.'})
 
 
 def post(request):
@@ -88,8 +90,8 @@ def post(request):
         raise Http404
 
     if request.GET and request.GET.get('sent'):
-        return render_to_response(request, 'subscribe/message.html', {'message':u'%s писем отправлено.' % request.GET.get('sent')})
-    
+        return render_to_response(request, 'subscribe/message.html', {'message': u'%s писем отправлено.' % request.GET.get('sent')})
+
     form = PostForm(request.POST)
     if request.POST and form.is_valid():
         subject, content = form.cleaned_data['message'].split("\n", 1)
@@ -97,8 +99,8 @@ def post(request):
         content += u"\n\nЧтобы отписаться от рассылки, перейдите по ссылке\n\nhttp://perspektiva-ekb.ru/subscribe/cancel?email=%s&code=%s"
         count = 0
         for s in Subscription.valid_emails():
-            send_mail(subject, content  % (s.email, s.delete_code), settings.DEFAULT_FROM_EMAIL, [s.email], fail_silently=False)
+            send_mail(subject, content % (s.email, s.delete_code), settings.DEFAULT_FROM_EMAIL, [s.email], fail_silently=False)
             count += 1
-        return HttpResponseRedirect(reverse('post')+'?sent=%s' % count)
+        return HttpResponseRedirect(reverse('post') + '?sent=%s' % count)
     else:
-        return render_to_response(request, 'subscribe/post.html', {'form':form})
+        return render_to_response(request, 'subscribe/post.html', {'form': form})
