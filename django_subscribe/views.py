@@ -97,12 +97,13 @@ def post(request):
         log = logging.getLogger('django.email')
         subject, content = form.cleaned_data['message'].split("\n", 1)
         subject = subject.strip()
-        content += u"\n\nЧтобы отписаться от рассылки, перейдите по ссылке\n\nhttp://%s/subscribe/cancel?email=%s&code=%s"
         count = 0
         fails = 0
         for s in Subscription.valid_emails():
             try:
-                send_mail(subject, content % (settings.DOMAIN, s.email, s.delete_code), settings.DEFAULT_FROM_EMAIL, [s.email])
+                unsubscribe = u"\n\nЧтобы отписаться от рассылки, перейдите по ссылке\n\nhttp://%s/subscribe/cancel?email=%s&code=%s"\
+                              % (settings.DOMAIN, s.email, s.delete_code)
+                send_mail(subject, content + unsubscribe, settings.DEFAULT_FROM_EMAIL, [s.email])
                 count += 1
             except Exception, e:
                 log.error("Cannot send mail: %s", e)
